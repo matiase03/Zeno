@@ -1,0 +1,28 @@
+name: Build Zenonia3 R36S
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+      - name: Compilar en Debian bullseye armhf (glibc 2.31, compatible con ArkOS/dArkOS)
+        run: |
+          docker run --rm --platform linux/arm/v7 -v "$PWD":/w -w /w debian:bullseye-slim bash -c '
+            set -e
+            apt-get update -qq
+            apt-get install -y -qq gcc libc6-dev libsdl2-dev file
+            ./build.sh
+          '
+      - name: Empaquetar
+        run: |
+          cd out && zip -r ../zenonia3-r36s-overlay.zip . && cd ..
+          ls -la zenonia3-r36s-overlay.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zenonia3-r36s-overlay
+          path: zenonia3-r36s-overlay.zip

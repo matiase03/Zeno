@@ -1,0 +1,24 @@
+/* nombres para dlopen; reales en gles.c */
+void glActiveTexture(void) {}
+void glBindTexture(void) {}
+void glClear(void) {}
+void glClearColorx(void) {}
+void glColorPointer(void) {}
+void glDisable(void) {}
+void glDisableClientState(void) {}
+void glDrawArrays(void) {}
+void glEnable(void) {}
+void glEnableClientState(void) {}
+void glGenTextures(void) {}
+void glHint(void) {}
+void glLoadIdentity(void) {}
+void glMatrixMode(void) {}
+void glNormalPointer(void) {}
+void glOrthof(void) {}
+void glTexCoordPointer(void) {}
+void glTexEnvf(void) {}
+void glTexImage2D(void) {}
+void glTexParameterx(void) {}
+void glTexSubImage2D(void) {}
+void glVertexPointer(void) {}
+void glViewport(void) {}
