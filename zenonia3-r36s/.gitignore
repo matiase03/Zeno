@@ -1,0 +1,6 @@
+out/
+*.zip
+# NO subas los assets del juego (copyright)
+assets/
+res/
+*.apk
