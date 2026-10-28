@@ -14,10 +14,14 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
+      # 1. Configurar QEMU para permitir emulación de arquitecturas ARM (armhf/armv7) en runners x86_64
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Configurar entorno y compilar en Debian Bullseye (armhf)
         run: |
           docker run --rm --platform linux/arm/v7 -v "$PWD":/w -w /w debian:bullseye-slim bash -c '
-            # Corregir repositorios para usar el archivo histórico de Debian (evita errores 404)
+            # Corregir repositorios para usar el archivo histórico de Debian
             echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list
             echo "deb http://archive.debian.org/debian-security/ bullseye-security main" >> /etc/apt/sources.list
             sed -i "/debconf\/frontend/d" /etc/environment || true
