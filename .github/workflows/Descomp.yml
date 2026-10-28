@@ -18,7 +18,7 @@ jobs:
       # 2. Descomprimir el archivo en la raíz del repositorio
       - name: Extract ZIP file
         run: |
-          ZIP_NAME="Zenonia3-r36s.zip"
+          ZIP_NAME="zenonia3-r36s.zip"
           if [ -f "$ZIP_NAME" ]; then
             echo "Descomprimiendo $ZIP_NAME en la raíz..."
             unzip -o "$ZIP_NAME" -d .
@@ -27,7 +27,7 @@ jobs:
             exit 1
           fi
 
-      # 3. Configurar git y hacer commit de los archivos descomprimidos (opcional)
+      # 3. Configurar git y hacer commit de los archivos descomprimidos
       - name: Commit extracted files
         run: |
           git config --global user.name "github-actions[bot]"
@@ -37,6 +37,6 @@ jobs:
           if git diff-index --quiet HEAD; then
             echo "No hay cambios para confirmar."
           else
-            git commit -m "chore: descomprimir Zenonia3-r36s.zip automáticamente"
+            git commit -m "chore: descomprimir zenonia3-r36s.zip automáticamente"
             git push
           fi
