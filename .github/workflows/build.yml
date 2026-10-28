@@ -1,28 +1,42 @@
-name: Build Zenonia3 R36S
+name: Compilar Port Zenonia 3
+
 on:
-  push:
   workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm
-      - name: Compilar en Debian bullseye armhf (glibc 2.31, compatible con ArkOS/dArkOS)
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar entorno y compilar en Debian Bullseye (armhf)
         run: |
           docker run --rm --platform linux/arm/v7 -v "$PWD":/w -w /w debian:bullseye-slim bash -c '
-            set -e
-            apt-get update -qq
-            apt-get install -y -qq gcc libc6-dev libsdl2-dev file
+            # Corregir repositorios para usar el archivo histórico de Debian (evita errores 404)
+            echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list
+            echo "deb http://archive.debian.org/debian-security/ bullseye-security main" >> /etc/apt/sources.list
+            sed -i "/debconf\/frontend/d" /etc/environment || true
+            
+            # Actualizar e instalar dependencias necesarias
+            apt-get update -o Acquire::Check-Valid-Until=false || true
+            apt-get install -y -o Acquire::Check-Valid-Until=false build-essential cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev || ./build.sh
+            
+            # Ejecutar el script de compilación del proyecto
+            chmod +x build.sh
             ./build.sh
           '
-      - name: Empaquetar
-        run: |
-          cd out && zip -r ../zenonia3-r36s-overlay.zip . && cd ..
-          ls -la zenonia3-r36s-overlay.zip
-      - uses: actions/upload-artifact@v4
+
+      - name: Subir artefacto compilado
+        uses: actions/upload-artifact@v4
         with:
-          name: zenonia3-r36s-overlay
-          path: zenonia3-r36s-overlay.zip
+          name: zenonia3-r36s-build
+          path: |
+            *.zip
+            *.tar.gz
+            port/
+            build/
