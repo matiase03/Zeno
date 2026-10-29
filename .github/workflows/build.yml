@@ -1,46 +1,52 @@
-name: Compilar Port Zenonia 3
-
+name: Build Zenonia3 R36S
 on:
-  workflow_dispatch:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 1. Configurar QEMU para permitir emulación de arquitecturas ARM (armhf/armv7) en runners x86_64
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Ver contenido del repo
+        shell: bash
+        run: |
+          ls -la
+          test -f build.sh || { echo "FALTA build.sh en la raiz"; exit 1; }
+          test -d src || { echo "FALTA src/ en la raiz"; exit 1; }
 
-      - name: Configurar entorno y compilar en Debian Bullseye (armhf)
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Compilar (Debian bullseye armhf)
+        shell: bash
         run: |
           docker run --rm --platform linux/arm/v7 -v "$PWD":/w -w /w debian:bullseye-slim bash -c '
-            # Corregir repositorios para usar el archivo histórico de Debian
+            set -ex
             echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list
-            echo "deb http://archive.debian.org/debian-security/ bullseye-security main" >> /etc/apt/sources.list
-            sed -i "/debconf\/frontend/d" /etc/environment || true
-            
-            # Actualizar e instalar dependencias necesarias
-            apt-get update -o Acquire::Check-Valid-Until=false || true
-            apt-get install -y -o Acquire::Check-Valid-Until=false build-essential cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev || ./build.sh
-            
-            # Ejecutar el script de compilación del proyecto
-            chmod +x build.sh
-            ./build.sh
-          '
+            apt-get -o Acquire::Check-Valid-Until=false update
+            apt-get install -y gcc libc6-dev libsdl2-dev file
+            bash ./build.sh
+          ' 2>&1 | tee build.log
 
-      - name: Subir artefacto compilado
+      - name: Verificar binario y empaquetar
+        shell: bash
+        run: |
+          test -f out/zenonia3/zenonia3.armhf || { echo "NO se genero el binario"; exit 1; }
+          cd out && zip -r ../zenonia3-r36s-overlay.zip .
+
+      - name: Subir log (siempre)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zenonia3-r36s-build
-          path: |
-            *.zip
-            *.tar.gz
-            port/
-            build/
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+
+      - name: Subir resultado
+        uses: actions/upload-artifact@v4
+        with:
+          name: zenonia3-r36s-overlay
+          path: zenonia3-r36s-overlay.zip
