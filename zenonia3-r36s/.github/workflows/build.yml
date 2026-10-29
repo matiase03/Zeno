@@ -1,28 +1,51 @@
-name: Build Zenonia3 R36S
+name: Compilar Port Zenonia 3
+
 on:
-  push:
   workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm
-      - name: Compilar en Debian bullseye armhf (glibc 2.31, compatible con ArkOS/dArkOS)
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      # 1. Configurar QEMU para emulación ARM
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Configurar entorno y compilar en Debian Bullseye (armhf)
         run: |
           docker run --rm --platform linux/arm/v7 -v "$PWD":/w -w /w debian:bullseye-slim bash -c '
-            set -e
-            apt-get update -qq
-            apt-get install -y -qq gcc libc6-dev libsdl2-dev file
+            # Corregir repositorios para usar el archivo histórico de Debian
+            echo "deb http://archive.debian.org/debian/ bullseye main" > /etc/apt/sources.list
+            echo "deb http://archive.debian.org/debian-security/ bullseye-security main" >> /etc/apt/sources.list
+            sed -i "/debconf\/frontend/d" /etc/environment || true
+            
+            # Instalar dependencias de compilación
+            apt-get update -o Acquire::Check-Valid-Until=false || true
+            apt-get install -y -o Acquire::Check-Valid-Until=false build-essential cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev || true
+            
+            # Ejecutar el script de compilación
+            chmod +x build.sh
             ./build.sh
+            
+            # Integrar la salida compilada (out/zenonia3) dentro de la carpeta port/
+            mkdir -p port/zenonia3
+            cp -r out/zenonia3/* port/zenonia3/
+            
+            # Crear el ZIP listo para PortMaster/R36S
+            cd port
+            zip -r ../zenonia3-r36s-ready.zip *
           '
-      - name: Empaquetar
-        run: |
-          cd out && zip -r ../zenonia3-r36s-overlay.zip . && cd ..
-          ls -la zenonia3-r36s-overlay.zip
-      - uses: actions/upload-artifact@v4
+
+      # 2. Subir el archivo ZIP ya estructurado como artefacto
+      - name: Subir artefacto final
+        uses: actions/upload-artifact@v4
         with:
-          name: zenonia3-r36s-overlay
-          path: zenonia3-r36s-overlay.zip
+          name: zenonia3-r36s-ready
+          path: zenonia3-r36s-ready.zip
